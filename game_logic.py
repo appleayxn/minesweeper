@@ -10,7 +10,7 @@ import random
 
 from board import (FLAG, HIDDEN, EMPTY, LETTERS,
                    create_board, neighbours, place_mines, compute_numbers)
-from interface import choose_level, display_board, parse_command, show_help
+from interface import display_board, parse_command, show_help
 
 
 def new_state(rows, cols, nb_mines, seed):
@@ -163,18 +163,21 @@ def cell_name(cell):
     return LETTERS[cell[1]] + str(cell[0] + 1)
 
 
-def play_game():
-    """Play one full game, from the level choice to the end.
+def play_game(settings):
+    """Play one full game, from the first move to the end.
+
+    Parameters:
+        settings (tuple): (rows, cols, nb_mines, seed) from choose_level()
 
     Returns:
-        bool: False if the player typed Q (quit), True otherwise
+        None
     """
-    rows, cols, nb_mines, seed = choose_level()
+    rows, cols, nb_mines, seed = settings
     state = new_state(rows, cols, nb_mines, seed)
     display_board(state, False)
 
     while not state["game_over"]:
-        text = input("\nCommand (H for help): ")
+        text = input("Command (R cell / F cell / D / H / Q): ")
         command, info = parse_command(text, rows, cols)
         message = ""
         if command is None:
@@ -183,7 +186,7 @@ def play_game():
             show_help()
         elif command == "Q":
             print("Game stopped.")
-            return False
+            return
         elif command == "D":
             if state["first_move"]:
                 message = "No mines yet: they are placed after your first reveal."
@@ -212,4 +215,3 @@ def play_game():
     else:
         print("Boom! You revealed a mine at " + cell_name(state["hit_mine"])
               + ". You lost.")
-    return True

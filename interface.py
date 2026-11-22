@@ -6,6 +6,8 @@ File: interface.py
 Role: level and seed choice, display, command parsing, help
 """
 
+import random
+
 from board import (HIDDEN, FLAG, EMPTY, MINE, HIT, WRONG_FLAG,
                    LETTERS, LEVELS, LEVEL_NAMES)
 
@@ -37,8 +39,11 @@ def choose_level():
 
     The questions are repeated until the answers are valid.
 
+    If the player gives no seed, a random seed is chosen and shown, so
+    that every game can be replayed exactly.
+
     Returns:
-        tuple: (rows, cols, nb_mines, seed); seed is an int or None
+        tuple: (rows, cols, nb_mines, seed)
     """
     print()
     for number in LEVELS:
@@ -58,7 +63,8 @@ def choose_level():
     while asking:
         answer = input("Seed (a number, or press Enter for random): ").strip()
         if answer == "":
-            asking = False                 # no seed: random game
+            seed = random.randint(1, 999999)   # random game, but replayable
+            asking = False
         elif is_number(answer):
             seed = int(answer)
             asking = False
@@ -66,6 +72,7 @@ def choose_level():
             print("The seed must be a whole number (digits only).")
 
     rows, cols, nb_mines = LEVELS[level]
+    print(LEVEL_NAMES[level] + " level, seed " + str(seed))
     return rows, cols, nb_mines, seed
 
 
@@ -105,12 +112,12 @@ def display_board(state, show_mines):
     rows = state["rows"]
     cols = state["cols"]
     print()
-    header = "    "
+    header = "   "
     for c in range(cols):
         header += LETTERS[c] + " "
     print(header)
     for r in range(rows):
-        line = str(r + 1).rjust(2) + "  "   # rows 1-9 aligned with 10-16
+        line = str(r + 1).rjust(2) + " "    # rows 1-9 aligned with 10-16
         for c in range(cols):
             line += cell_symbol((r, c), state, show_mines) + " "
         print(line)
@@ -185,7 +192,7 @@ def show_help():
     print("  F C3   put or remove a flag on C3")
     print("  D      debug: show all mines (the game continues)")
     print("  H      show this help")
-    print("  Q      quit the game")
+    print("  Q      quit the current game")
     print("Symbols:")
     print("  " + HIDDEN + " hidden   " + FLAG + " flag   " + EMPTY
           + " empty   1-8 mines around")
