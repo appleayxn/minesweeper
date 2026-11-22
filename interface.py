@@ -18,7 +18,7 @@ def is_number(text):
     """Check that a string contains only the digits 0-9.
 
     str.isdigit() is not used because it also accepts characters like
-    '²' that int() cannot convert, which would crash the program.
+    the superscript two that int() cannot convert, which would crash the program.
 
     Parameters:
         text (str): the text to check

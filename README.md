@@ -22,7 +22,7 @@ Python 3.7 or later. No library to install (only `random` and `time` from the st
 | `H` | help |
 | `Q` | quit |
 
-Commands are not case-sensitive. Symbols: `#` hidden, `F` flag, `.` empty, `1`–`8` mines around, `*` mine, `X` mine hit, `!` wrong flag.
+Commands are not case-sensitive. Symbols: `#` hidden, `F` flag, `.` empty, `1`-`8` mines around, `*` mine, `X` mine hit, `!` wrong flag.
 
 ## Files
 
