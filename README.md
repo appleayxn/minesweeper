@@ -20,9 +20,20 @@ Python 3.7 or later. No library to install (only `random` and `time` from the st
 | `F C3` | put or remove a flag on C3 |
 | `D` | debug: show all mines, the game continues |
 | `H` | help |
-| `Q` | quit |
+| `Q` | quit the current game |
+| `HINT` | show a safe cell (extra) |
 
 Commands are not case-sensitive. Symbols: `#` hidden, `F` flag, `.` empty, `1`-`8` mines around, `*` mine, `X` mine hit, `!` wrong flag.
+
+## Optional extras
+
+- `HINT` command: shows a safe hidden cell next to the open area.
+- Timer and scoreboard of best times (dictionary), saved in `scores.txt`; menu option 4.
+- Custom board size (level 4): 5 to 20 rows and columns, at most 25 % of mines.
+
+## Demo
+
+Level 1, seed 7, first move `R E5` gives exactly the example board of the assignment.
 
 ## Files
 
@@ -32,4 +43,5 @@ Commands are not case-sensitive. Symbols: `#` hidden, `F` flag, `.` empty, `1`-`
 | `board.py` | constants, board, mines, neighbours, numbers |
 | `game_logic.py` | game state, reveal (flood fill), flags, win / loss, one game |
 | `interface.py` | level and seed, display, command parsing, help |
+| `scores.py` | extra: best times, saved in `scores.txt` |
 | `report/main.tex` | report template (Overleaf) |

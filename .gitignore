@@ -6,3 +6,4 @@ report/*.log
 report/*.out
 report/*.toc
 report/*.pdf
+scores.txt

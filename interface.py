@@ -34,6 +34,41 @@ def is_number(text):
     return True
 
 
+def ask_number(question, low, high):
+    """OPTIONAL EXTRA - ask a whole number until it is between low and high.
+
+    Parameters:
+        question (str): the text shown to the player
+        low (int): smallest accepted value
+        high (int): biggest accepted value
+
+    Returns:
+        int: the number typed by the player
+    """
+    while True:
+        answer = input(question).strip()
+        if is_number(answer) and low <= int(answer) <= high:
+            return int(answer)
+        print("Please type a whole number from " + str(low) + " to "
+              + str(high) + ".")
+
+
+def choose_custom():
+    """OPTIONAL EXTRA - ask the size and the mines of a custom board.
+
+    Rows and columns go from 5 to 20; at most 25 % of the cells are mines.
+
+    Returns:
+        tuple: (rows, cols, nb_mines)
+    """
+    rows = ask_number("Rows (5 to 20): ", 5, 20)
+    cols = ask_number("Columns (5 to 20): ", 5, 20)
+    max_mines = rows * cols // 4                 # 25 % of the cells
+    nb_mines = ask_number("Mines (1 to " + str(max_mines) + "): ",
+                          1, max_mines)
+    return rows, cols, nb_mines
+
+
 def choose_level():
     """Ask the player for the level and an optional seed.
 
@@ -50,13 +85,16 @@ def choose_level():
         rows, cols, mines = LEVELS[number]
         print("  " + str(number) + " - " + LEVEL_NAMES[number] + ": "
               + str(rows) + " x " + str(cols) + ", " + str(mines) + " mines")
+    print("  4 - Custom size (extra)")
     level = 0
     while level == 0:
-        answer = input("Choose a level (1, 2 or 3): ").strip()
-        if answer in ("1", "2", "3"):
+        answer = input("Choose a level (1, 2, 3 or 4): ").strip()
+        if answer in ("1", "2", "3", "4"):
             level = int(answer)
         else:
-            print("Please choose 1, 2 or 3.")
+            print("Please choose 1, 2, 3 or 4.")
+    if level == 4:
+        rows, cols, nb_mines = choose_custom()
 
     seed = None
     asking = True
@@ -71,8 +109,12 @@ def choose_level():
         else:
             print("The seed must be a whole number (digits only).")
 
-    rows, cols, nb_mines = LEVELS[level]
-    print(LEVEL_NAMES[level] + " level, seed " + str(seed))
+    if level == 4:
+        print("Custom board " + str(rows) + " x " + str(cols) + ", "
+              + str(nb_mines) + " mines, seed " + str(seed))
+    else:
+        rows, cols, nb_mines = LEVELS[level]
+        print(LEVEL_NAMES[level] + " level, seed " + str(seed))
     return rows, cols, nb_mines, seed
 
 
@@ -148,7 +190,8 @@ def parse_cell(text, rows, cols):
 def parse_command(text, rows, cols):
     """Read one line typed by the player and check it.
 
-    Accepted commands (not case-sensitive): R <cell>, F <cell>, D, H, Q.
+    Accepted commands (not case-sensitive): R <cell>, F <cell>, D, H, Q,
+    and the optional extra HINT.
     This function never raises an exception, whatever the input.
 
     Parameters:
@@ -164,9 +207,9 @@ def parse_command(text, rows, cols):
     if len(parts) == 0:
         return None, "Please type a command (H for help)."
     command = parts[0]
-    if command not in ("R", "F", "D", "H", "Q"):
+    if command not in ("R", "F", "D", "H", "Q", "HINT"):
         return None, "Unknown command '" + parts[0] + "'. Type H for help."
-    if command in ("D", "H", "Q"):
+    if command in ("D", "H", "Q", "HINT"):
         if len(parts) > 1:
             return None, "Command " + command + " does not take a cell."
         return command, None
@@ -193,6 +236,7 @@ def show_help():
     print("  D      debug: show all mines (the game continues)")
     print("  H      show this help")
     print("  Q      quit the current game")
+    print("  HINT   show a safe cell (extra)")
     print("Symbols:")
     print("  " + HIDDEN + " hidden   " + FLAG + " flag   " + EMPTY
           + " empty   1-8 mines around")

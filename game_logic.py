@@ -7,6 +7,7 @@ Role: game state, reveal (flood fill), flags, win and loss, one game
 """
 
 import random
+import time
 
 from board import (FLAG, HIDDEN, EMPTY, LETTERS,
                    create_board, neighbours, place_mines, compute_numbers)
@@ -151,6 +152,34 @@ def check_loss(state):
     return state["hit_mine"] is not None
 
 
+def find_hint(state):
+    """OPTIONAL EXTRA - find a safe hidden cell to suggest to the player.
+
+    A safe cell next to the revealed area is preferred, because it is the
+    most useful one; otherwise any safe hidden cell is chosen. Cells are
+    looked at row by row, so the hint is always the same for the same game.
+
+    Parameters:
+        state (dict): the game state (mines must be placed)
+
+    Returns:
+        tuple: (row, col) of a safe hidden cell, or None if there is none
+    """
+    other = None
+    for r in range(state["rows"]):
+        for c in range(state["cols"]):
+            cell = (r, c)
+            if (cell in state["mines"] or cell in state["revealed"]
+                    or cell in state["flags"]):
+                continue                      # not a useful hint
+            for n in neighbours(r, c, state["rows"], state["cols"]):
+                if n in state["revealed"]:
+                    return cell               # next to the open area
+            if other is None:
+                other = cell
+    return other
+
+
 def cell_name(cell):
     """Convert (row, col) into the name shown on screen, e.g. (3, 2) -> 'C4'.
 
@@ -170,10 +199,11 @@ def play_game(settings):
         settings (tuple): (rows, cols, nb_mines, seed) from choose_level()
 
     Returns:
-        None
+        int: the time in seconds if the game is won, otherwise None
     """
     rows, cols, nb_mines, seed = settings
     state = new_state(rows, cols, nb_mines, seed)
+    start_time = time.time()                     # extra: timer
     display_board(state, False)
 
     while not state["game_over"]:
@@ -186,13 +216,18 @@ def play_game(settings):
             show_help()
         elif command == "Q":
             print("Game stopped.")
-            return
+            return None
         elif command == "D":
             if state["first_move"]:
                 message = "No mines yet: they are placed after your first reveal."
             else:
                 print("Debug view (the game continues):")
                 display_board(state, True)
+        elif command == "HINT":                  # extra: hint command
+            if state["first_move"]:
+                message = "Reveal a first cell before asking for a hint."
+            else:
+                print("Hint: " + cell_name(find_hint(state)) + " is safe.")
         elif command == "R":
             message = reveal(info, state)
         elif command == "F":
@@ -211,7 +246,9 @@ def play_game(settings):
 
     display_board(state, True)                   # full board at the end
     if state["won"]:
-        print("Congratulations, you won!")
-    else:
-        print("Boom! You revealed a mine at " + cell_name(state["hit_mine"])
-              + ". You lost.")
+        seconds = int(time.time() - start_time)
+        print("Congratulations, you won! Time: " + str(seconds) + " s")
+        return seconds
+    print("Boom! You revealed a mine at " + cell_name(state["hit_mine"])
+          + ". You lost.")
+    return None
