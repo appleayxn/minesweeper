@@ -3,19 +3,18 @@ Minesweeper - Algorithms and Programming 1 - UFAZ
 Team: Zeynalzada Ayxan, Maharramli Anvar, Qurbanli Elton,
       Nuruzada Nihat, Hamzayev Altair
 File: main.py
-Role: program entry point and menu (new game, replay, quit)
+Role: start of the program and menu (new game, replay, quit)
 
 Run with:  python main.py   (Python 3.7 or later)
 """
 
 from interface import choose_level
 from game_logic import play_game
-from scores import (SCORES_FILE, board_key, load_scores, save_scores,
-                    update_scores, show_scores)
+from scores import board_key, update_scores, show_scores
 
 
 def ask_menu(can_replay):
-    """Show the menu and return the valid choice of the player.
+    """Show the menu and return the choice of the player.
 
     Parameters:
         can_replay (bool): True if a game was already played
@@ -26,15 +25,22 @@ def ask_menu(can_replay):
     """
     print()
     print("1 - New game")
-    if can_replay:
+    if can_replay == True:
         print("2 - Replay the last game (same level and seed)")
     print("3 - Quit")
     print("4 - Best times")
-    while True:
-        answer = input("Your choice: ").strip()
-        if answer in ("1", "3", "4") or (answer == "2" and can_replay):
-            return answer
-        print("Please type one of the numbers shown.")
+
+    choice = ""
+    while choice == "":
+        answer = input("Your choice: ")
+        answer = answer.strip()
+        if answer == "1" or answer == "3" or answer == "4":
+            choice = answer
+        elif answer == "2" and can_replay == True:
+            choice = answer
+        else:
+            print("Please type one of the numbers shown.")
+    return choice
 
 
 def record_time(settings, seconds, scores):
@@ -42,18 +48,18 @@ def record_time(settings, seconds, scores):
 
     Parameters:
         settings (tuple): (rows, cols, nb_mines, seed) of the game
-        seconds (int): time of the game, or None if it was not won
-        scores (dict): the scoreboard (changed in place)
+        seconds (int): time of the game, or None if the game was not won
+        scores (dict): the best times (it is changed)
 
     Returns:
         None
     """
-    if seconds is None:
+    if seconds == None:
         return
     key = board_key(settings[0], settings[1], settings[2])
-    if update_scores(scores, key, seconds):
+    is_record = update_scores(scores, key, seconds)
+    if is_record == True:
         print("New best time for " + key + "!")
-        save_scores(scores, SCORES_FILE)
 
 
 def main():
@@ -66,20 +72,28 @@ def main():
     print("         MINESWEEPER")
     print("=" * 30)
     print("Type H during the game to see the commands.")
-    last_settings = None                 # (rows, cols, nb_mines, seed)
-    scores = load_scores(SCORES_FILE)    # extra: best times
+
+    last_settings = None                  # (rows, cols, nb_mines, seed)
+    scores = {}                           # extra: best times (board -> seconds)
+
     choice = ""
     while choice != "3":
-        choice = ask_menu(last_settings is not None)
+        can_replay = False
+        if last_settings != None:
+            can_replay = True
+        choice = ask_menu(can_replay)
+
         if choice == "1":
             last_settings = choose_level()
-            record_time(last_settings, play_game(last_settings), scores)
-        elif choice == "2":                # same seed -> same board
-            record_time(last_settings, play_game(last_settings), scores)
+            seconds = play_game(last_settings)
+            record_time(last_settings, seconds, scores)
+        elif choice == "2":
+            # same settings and same seed -> same board
+            seconds = play_game(last_settings)
+            record_time(last_settings, seconds, scores)
         elif choice == "4":
             show_scores(scores)
     print("Goodbye!")
 
 
-if __name__ == "__main__":
-    main()
+main()

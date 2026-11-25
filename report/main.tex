@@ -151,7 +151,7 @@ The code is split into five files. Imports go in one direction only:
 \code{interface.py} & level and seed choice, display, command parsing, help \\
 \code{game\_logic.py} & game state, reveal (flood fill), flags, win and loss, one full game \\
 \code{main.py} & entry point and menu: new game, replay, quit \\
-\code{scores.py} & \emph{extra}: best times in a dictionary, saved in \code{scores.txt} \\
+\code{scores.py} & \emph{extra}: best times in a dictionary \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -223,7 +223,6 @@ ask\_number & asks an integer between two limits & question, low, high & int \\
 choose\_custom & size and mines of a custom board & -- & (rows, cols, nb\_mines) \\
 record\_time & keeps the time of a won game if it is a record & settings, seconds, scores & None \\
 board\_key & scoreboard key, e.g. \code{"9x9, 10 mines"} & rows, cols, nb\_mines & str \\
-load\_scores / save\_scores & read / write \code{scores.txt} & (scores,) filename & dict / None \\
 update\_scores & stores a time if it is the best & scores, key, seconds & bool \\
 show\_scores & prints the best times & scores & None \\
 \bottomrule
@@ -394,7 +393,7 @@ A1, B1, C1, A2, B2, C2, B3, C3. Three observations:
 \item The area stops at the numbers (\code{C1}, \code{C2}, \code{B3}, \code{C3}); the empty zone
   D4--E5 is not reached because it is not connected to A1 through zeros.
 \item A cell can be pushed twice (B1 and A2 at steps 1 and 2). The test
-  \code{if (r, c) in revealed: continue} makes the second copy harmless (steps 9--12).
+  test \code{if already\_revealed == False and has\_flag == False} makes the second copy harmless (steps 9--12).
 \end{itemize}
 
 % ------------------------------------------------------------------ 5
@@ -428,12 +427,12 @@ for $O(n)$:
 \toprule
 \textbf{Board} & $n$ & \code{compute\_numbers} & flood fill (whole board)\\
 \midrule
-$9\times9$ & 81 & 0.14 ms & 0.19 ms\\
-$16\times16$ & 256 & 0.38 ms & 0.90 ms\\
-$32\times32$ & 1\,024 & 1.59 ms & 2.79 ms\\
-$64\times64$ & 4\,096 & 6.15 ms & 13.2 ms\\
-$100\times100$ & 10\,000 & 16.5 ms & 22.6 ms\\
-$200\times200$ & 40\,000 & 44.5 ms & 80.8 ms\\
+$9\times9$ & 81 & 0.15 ms & 0.29 ms\\
+$16\times16$ & 256 & 0.44 ms & 0.78 ms\\
+$32\times32$ & 1\,024 & 1.76 ms & 2.93 ms\\
+$64\times64$ & 4\,096 & 8.03 ms & 16.3 ms\\
+$100\times100$ & 10\,000 & 15.9 ms & 26.7 ms\\
+$200\times200$ & 40\,000 & 65.6 ms & 118 ms\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -443,8 +442,8 @@ $200\times200$ & 40\,000 & 44.5 ms & 80.8 ms\\
 
 All tests were run on the real program (\code{python main.py}) with the input typed automatically,
 on Python 3.8 and Python 3.13. Seed 7 on level 1 gives the board of the assignment, with mines on
-G1, H1, A2, D2, B3, G5, C6, G6, C8 and G8. Tests F1--F2 are random (``fuzz'') tests and E1--E4 test the
-optional extras. \textbf{Result: 26 / 26 passed.} Figure~\ref{fig:vscode} shows a real game played by
+G1, H1, A2, D2, B3, G5, C6, G6, C8 and G8. Tests F1--F2 are random (``fuzz'') tests and E1--E3 test the
+optional extras. \textbf{Result: 25 / 25 passed.} Figure~\ref{fig:vscode} shows a real game played by
 hand during the tests (flags, an error message, then a loss with the full board).
 
 \begin{figure}[H]
@@ -484,9 +483,8 @@ T20 & No seed given & Enter at the seed question & random seed shown, replay ide
 F1 & Fuzz: random text to parse\_command & 50 000 random strings & no exception & 0 exceptions -- pass\\
 F2 & Fuzz: 1500 random games & random reveals and flags & no mine or flag ever revealed & 0 rule violations -- pass\\
 E1 & Hint command (extra) & HINT before and after R E5; 300 Hard games solved by hints only & message, then a safe cell & ``Hint: D1 is safe.''; 300/300 games won with hints -- pass\\
-E2 & Timer and best times saved in a file (extra) & win, quit, restart, menu 4 & time shown, record kept after restart & time shown, scores.txt read back -- pass\\
-E3 & Badly written score file (extra) & file with wrong lines & wrong lines ignored & only the valid line shown -- pass\\
-E4 & Custom board size (extra) & 4, 21, abc, 20, 20, 101, 0, 100 & asked again; 20 x 20 with 100 mines & 3 + 2 refusals, 20 x 20 board, 100 mines -- pass\\
+E2 & Timer and best times (extra) & menu 4, win, replay and win again, menu 4 & time shown, best time kept in the dictionary & time shown, best time listed -- pass\\
+E3 & Custom board size (extra) & 4, 21, abc, 20, 20, 101, 0, 100 & asked again; 20 x 20 with 100 mines & 3 + 2 refusals, 20 x 20 board, 100 mines -- pass\\
 \bottomrule
 \end{longtable}}
 
@@ -511,8 +509,8 @@ E4 & Custom board size (extra) & 4, 21, abc, 20, 20, 101, 0, 100 & asked again; 
 4 & Without a seed a game could not be replayed. & The program chooses a random seed and shows it;
   menu option 2 replays it.\\
 5 & The first board layout and prompt did not match the example screen of the assignment
-  (extra spaces, different prompt). & Header, spacing and prompt changed to match it; row numbers are
-  right-aligned on 2 characters (\code{rjust(2)}) so rows 1--9 line up with 10--16 (test T17).\\
+  (extra spaces, different prompt). & Header, spacing and prompt changed to match it;
+  a space is added before the row numbers 1--9 so they line up with 10--16 (test T17).\\
 6 & The first move must be safe, but the mines must exist to compute the numbers. &
   The mines are placed inside \code{reveal}, at the first call, excluding the chosen cell
   (test T1: 1\,220 games, no mine hit).\\
@@ -520,7 +518,10 @@ E4 & Custom board size (extra) & 4, 21, abc, 20, 20, 101, 0, 100 & asked again; 
   It is skipped when it is popped if it is already revealed.\\
 8 & Two non-ASCII characters (\code{\textsuperscript{2}} and a long dash) in comments could be shown
   wrongly with some Windows encodings. & All files now contain only ASCII characters.\\
-9 & \textbf{Known limitation.} If the input stream is closed (Ctrl+Z then Enter on Windows,
+9 & The first version used shortcuts that some members had not studied (chained methods, \code{continue},
+  \code{ord}, \code{rjust}, a file for the scores). & The code was rewritten step by step with only notions of the course;
+  all tests were run again (25 / 25).\\
+10 & \textbf{Known limitation.} If the input stream is closed (Ctrl+Z then Enter on Windows,
   Ctrl+D on Linux), \code{input()} raises an error. &
   Catching it needs \code{try}/\code{except}, which is not in the list of allowed notions; normal
   typing can never cause it.\\
@@ -566,12 +567,9 @@ mandatory behaviour (tests T1--T20 still pass).
   revealed area. Test E1 solved 300 Hard games using only hints, without hitting a mine.
 \item \textbf{Timer and scoreboard.} \code{play\_game} measures the time with \code{time.time()} and
   returns it when the game is won. The best time of each board is kept in a \emph{dictionary}
-  (key \code{"9x9, 10 mines"}) shown with menu option 4.
-\item \textbf{Scoreboard saved in a file.} The dictionary is written to \code{scores.txt} (one
-  \code{key;seconds} per line) and read back at start. The file is opened with mode \code{"a+"},
-  which creates it if it does not exist, so no error is possible; wrong lines are ignored (test E3).
+  (key \code{"9x9, 10 mines"}) shown with menu option 4. It is kept while the program runs; we did not save it in a file because file handling was not part of the course.
 \item \textbf{Custom board size.} Level 4 asks rows and columns from 5 to 20 and at most 25\,\% of
-  mines, and asks again until the values are valid (test E4).
+  mines, and asks again until the values are valid (test E3).
 \end{itemize}
 We did not add the ``safer first move'' extra, because it would change the boards: the demonstration
 board of the assignment (seed 7) would no longer be reproduced. Colours and a graphical interface
