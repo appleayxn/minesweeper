@@ -103,6 +103,7 @@ are \code{random} and \code{time}.
 \item \textbf{Menu.} After a game: new game, replay the last game (same level and seed), or quit.
 \item \textbf{Input.} Any wrong input (unknown command, \code{Z99}, \code{E}, \code{5E}, \code{E-5},
   a revealed or flagged cell, \dots) prints a clear message and asks again; the turn is not lost.
+  Closing the input (Ctrl+Z) or pressing Ctrl+C stops the program with a message, never with an error.
 \end{itemize}
 
 \subsection{How we worked}
@@ -443,7 +444,7 @@ $200\times200$ & 40\,000 & 65.6 ms & 118 ms\\
 All tests were run on the real program (\code{python main.py}) with the input typed automatically,
 on Python 3.8 and Python 3.13. Seed 7 on level 1 gives the board of the assignment, with mines on
 G1, H1, A2, D2, B3, G5, C6, G6, C8 and G8. Tests F1--F2 are random (``fuzz'') tests and E1--E3 test the
-optional extras. \textbf{Result: 25 / 25 passed.} Figure~\ref{fig:vscode} shows a real game played by
+optional extras. \textbf{Result: 26 / 26 passed.} Figure~\ref{fig:vscode} shows a real game played by
 hand during the tests (flags, an error message, then a loss with the full board).
 
 \begin{figure}[H]
@@ -480,6 +481,7 @@ T17 & Hard level 16 x 16 & R P16, R Q1 & P16 accepted, Q1 outside, rows aligned 
 T18 & Invalid menu, level and seed & 9, 2 (no game yet), 0, 5, abc, -5 & asked again each time & asked again 6 times -- pass\\
 T19 & Help, quit game, quit program & h, q, 3 & help shown, back to menu, program ends & help, ``Game stopped.'', ``Goodbye!'' -- pass\\
 T20 & No seed given & Enter at the seed question & random seed shown, replay identical & seed shown, replay identical -- pass\\
+T21 & Input closed (Ctrl+Z) at any moment & input ends in a game, a menu, the level, the seed, the custom size & clear message, no crash & ``The input was closed. Goodbye!'', exit code 0 (5/5) -- pass\\
 F1 & Fuzz: random text to parse\_command & 50 000 random strings & no exception & 0 exceptions -- pass\\
 F2 & Fuzz: 1500 random games & random reveals and flags & no mine or flag ever revealed & 0 rule violations -- pass\\
 E1 & Hint command (extra) & HINT before and after R E5; 300 Hard games solved by hints only & message, then a safe cell & ``Hint: D1 is safe.''; 300/300 games won with hints -- pass\\
@@ -520,11 +522,10 @@ E3 & Custom board size (extra) & 4, 21, abc, 20, 20, 101, 0, 100 & asked again; 
   wrongly with some Windows encodings. & All files now contain only ASCII characters.\\
 9 & The first version used shortcuts that some members had not studied (chained methods, \code{continue},
   \code{ord}, \code{rjust}, a file for the scores). & The code was rewritten step by step with only notions of the course;
-  all tests were run again (25 / 25).\\
-10 & \textbf{Known limitation.} If the input stream is closed (Ctrl+Z then Enter on Windows,
-  Ctrl+D on Linux), \code{input()} raises an error. &
-  Catching it needs \code{try}/\code{except}, which is not in the list of allowed notions; normal
-  typing can never cause it.\\
+  all tests were run again.\\
+10 & If the input stream is closed (Ctrl+Z then Enter on Windows) or the player presses Ctrl+C,
+  \code{input()} raises an error and the program crashed. & \code{main()} catches \code{EOFError} and
+  \code{KeyboardInterrupt} with \code{try}/\code{except} and stops with a message (test T21).\\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -542,17 +543,16 @@ took part in studying the game, in the tests and in this report.
 \toprule
 \textbf{Member} & \textbf{Functions} & \textbf{Report}\\
 \midrule
-Zeynalzada Ayxan & \code{play\_game}, \code{check\_win}, \code{check\_loss}, \code{new\_state},
-  \code{cell\_name}, \code{main}, \code{ask\_menu}; extra: timer and \code{scores.py} &
-  coordination, overview, main-loop flowchart, test plan\\
-Nuruzada Nihat & \code{create\_board}, \code{place\_mines}, \code{start\_mines},
-  \code{choose\_level} & design, data structures, seed\\
-Qurbanli Elton & \code{neighbours}, \code{count\_adjacent}, \code{compute\_numbers};
-  extra: custom board size & complexity analysis\\
-Maharramli Anvar & \code{reveal}, \code{toggle\_flag}; extra: \code{find\_hint} &
+Zeynalzada Ayxan & \code{play\_game}, \code{main} (with \code{try}/\code{except}), \code{ask\_menu},
+  \code{new\_state}, \code{check\_win}, \code{check\_loss}, \code{cell\_name}; extra: timer and best
+  times (\code{record\_time}, \code{scores.py}) & coordination, overview, main-loop flowchart, test plan\\
+Nuruzada Nihat & \code{choose\_level}, \code{place\_mines}, \code{start\_mines}, \code{create\_board},
+  \code{is\_number}; extra: custom board size (\code{ask\_number}, \code{choose\_custom}) & design, data structures, seed\\
+Maharramli Anvar & \code{reveal}, \code{toggle\_flag}, \code{display\_board}; extra: \code{find\_hint} &
   reveal flowchart, $5\times5$ trace\\
-Hamzayev Altair & \code{display\_board}, \code{cell\_symbol}, \code{parse\_command},
-  \code{parse\_cell}, \code{is\_number}, \code{show\_help} & user interface, difficulties\\
+Qurbanli Elton & \code{neighbours}, \code{count\_adjacent}, \code{compute\_numbers}, \code{parse\_cell},
+  \code{cell\_symbol} & complexity analysis\\
+Hamzayev Altair & \code{parse\_command}, \code{show\_help} & difficulties and solutions\\
 \bottomrule
 \end{tabularx}
 \end{center}

@@ -65,6 +65,9 @@ def record_time(settings, seconds, scores):
 def main():
     """Show the title, then the menu until the player quits.
 
+    If the input is closed (Ctrl+Z then Enter on Windows) or the player
+    presses Ctrl+C, the program stops with a message instead of crashing.
+
     Returns:
         None
     """
@@ -73,27 +76,36 @@ def main():
     print("=" * 30)
     print("Type H during the game to see the commands.")
 
-    last_settings = None                  # (rows, cols, nb_mines, seed)
-    scores = {}                           # extra: best times (board -> seconds)
+    try:
+        last_settings = None                  # (rows, cols, nb_mines, seed)
+        scores = {}                           # extra: best times (board -> seconds)
 
-    choice = ""
-    while choice != "3":
-        can_replay = False
-        if last_settings != None:
-            can_replay = True
-        choice = ask_menu(can_replay)
+        choice = ""
+        while choice != "3":
+            can_replay = False
+            if last_settings != None:
+                can_replay = True
+            choice = ask_menu(can_replay)
 
-        if choice == "1":
-            last_settings = choose_level()
-            seconds = play_game(last_settings)
-            record_time(last_settings, seconds, scores)
-        elif choice == "2":
-            # same settings and same seed -> same board
-            seconds = play_game(last_settings)
-            record_time(last_settings, seconds, scores)
-        elif choice == "4":
-            show_scores(scores)
-    print("Goodbye!")
+            if choice == "1":
+                last_settings = choose_level()
+                seconds = play_game(last_settings)
+                record_time(last_settings, seconds, scores)
+            elif choice == "2":
+                # same settings and same seed -> same board
+                seconds = play_game(last_settings)
+                record_time(last_settings, seconds, scores)
+            elif choice == "4":
+                show_scores(scores)
+        print("Goodbye!")
+    except EOFError:
+        # the input was closed: there is nothing more to read
+        print()
+        print("The input was closed. Goodbye!")
+    except KeyboardInterrupt:
+        # the player pressed Ctrl+C
+        print()
+        print("The program was stopped. Goodbye!")
 
 
 main()
