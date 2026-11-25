@@ -114,6 +114,42 @@ def place_mines(rows, cols, nb_mines, safe_cell):
     return mines
 
 
+def place_mines_safe(rows, cols, nb_mines, safe_cell):
+    """OPTIONAL EXTRA - like place_mines, but the 8 neighbours of
+    safe_cell are also free of mines (safer first move).
+
+    So the first revealed cell always shows 0 and opens an area.
+
+    Parameters:
+        rows (int): number of rows
+        cols (int): number of columns
+        nb_mines (int): how many mines to place
+        safe_cell (tuple): (row, col) of the first cell the player revealed
+
+    Returns:
+        set: set of tuples (r, c), the positions of the mines
+    """
+    # 1. the cells where no mine can go: the safe cell and its neighbours
+    forbidden = neighbours(safe_cell[0], safe_cell[1], rows, cols)
+    forbidden.append(safe_cell)
+
+    # 2. make a list of all the other cells
+    candidates = []
+    for r in range(rows):
+        for c in range(cols):
+            if (r, c) not in forbidden:
+                candidates.append((r, c))
+
+    # 3. random.sample chooses nb_mines different cells from the list
+    chosen = random.sample(candidates, nb_mines)
+
+    # 4. put the chosen cells in a set
+    mines = set()
+    for cell in chosen:
+        mines.add(cell)
+    return mines
+
+
 def count_adjacent(row, col, mines, rows, cols):
     """Count how many mines are around one cell.
 

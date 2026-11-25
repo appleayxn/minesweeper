@@ -11,6 +11,7 @@ import time
 
 from board import FLAG, HIDDEN, EMPTY, LETTERS
 from board import create_board, neighbours, place_mines, compute_numbers
+from board import place_mines_safe
 from interface import display_board, parse_command, show_help
 
 
@@ -40,6 +41,7 @@ def new_state(rows, cols, nb_mines, seed):
     state["game_over"] = False
     state["won"] = False
     state["hit_mine"] = None                    # the mine that exploded
+    state["safe_start"] = False                 # extra: safer first move
     return state
 
 
@@ -56,8 +58,13 @@ def start_mines(cell, state):
         None
     """
     random.seed(state["seed"])        # same seed -> same mines
-    state["mines"] = place_mines(state["rows"], state["cols"],
-                                 state["nb_mines"], cell)
+    if state["safe_start"] == True:
+        # extra: no mine on the cell and on its 8 neighbours
+        state["mines"] = place_mines_safe(state["rows"], state["cols"],
+                                          state["nb_mines"], cell)
+    else:
+        state["mines"] = place_mines(state["rows"], state["cols"],
+                                     state["nb_mines"], cell)
     state["numbers"] = compute_numbers(state["mines"],
                                        state["rows"], state["cols"])
     state["first_move"] = False
@@ -231,7 +238,7 @@ def play_game(settings):
     """Play one full game, from the first move to the end.
 
     Parameters:
-        settings (tuple): (rows, cols, nb_mines, seed) from choose_level()
+        settings (tuple): (rows, cols, nb_mines, seed, safe_start)
 
     Returns:
         int: the time in seconds if the game is won, otherwise None
@@ -240,8 +247,12 @@ def play_game(settings):
     cols = settings[1]
     nb_mines = settings[2]
     seed = settings[3]
+    safe_start = settings[4]
 
     state = new_state(rows, cols, nb_mines, seed)
+    state["safe_start"] = safe_start
+    if safe_start == True:
+        print("Safe start: there is no mine around your first cell.")
     start_time = time.time()                  # extra: timer
     display_board(state, False)
 

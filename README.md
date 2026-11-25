@@ -28,7 +28,8 @@ Commands are not case-sensitive. Symbols: `#` hidden, `F` flag, `.` empty, `1`-`
 ## Optional extras
 
 - `HINT` command: shows a safe hidden cell next to the open area.
-- Timer and scoreboard of best times (dictionary, kept while the program runs); menu option 4.
+- Timer and scoreboard of best times (dictionary), saved in `scores.txt`; menu option 4.
+- Safe start: menu option 5, no mine on the first cell and its 8 neighbours.
 - Custom board size (level 4): 5 to 20 rows and columns, at most 25 % of mines.
 
 ## Demo
@@ -43,5 +44,5 @@ Level 1, seed 7, first move `R E5` gives exactly the example board of the assign
 | `board.py` | constants, board, mines, neighbours, numbers |
 | `game_logic.py` | game state, reveal (flood fill), flags, win / loss, one game |
 | `interface.py` | level and seed, display, command parsing, help |
-| `scores.py` | extra: best times in a dictionary |
+| `scores.py` | extra: best times in a dictionary, saved in `scores.txt` |
 | `report/main.tex` | report template (Overleaf) |

@@ -10,7 +10,8 @@ Run with:  python main.py   (Python 3.7 or later)
 
 from interface import choose_level
 from game_logic import play_game
-from scores import board_key, update_scores, show_scores
+from scores import SCORES_FILE, board_key, load_scores, save_scores
+from scores import update_scores, show_scores
 
 
 def ask_menu(can_replay):
@@ -21,7 +22,7 @@ def ask_menu(can_replay):
 
     Returns:
         str: "1" new game, "2" replay the last game, "3" quit,
-             "4" best times (extra)
+             "4" best times (extra), "5" new game with a safe start (extra)
     """
     print()
     print("1 - New game")
@@ -29,12 +30,13 @@ def ask_menu(can_replay):
         print("2 - Replay the last game (same level and seed)")
     print("3 - Quit")
     print("4 - Best times")
+    print("5 - New game with a safe start (no mine around the first cell)")
 
     choice = ""
     while choice == "":
         answer = input("Your choice: ")
         answer = answer.strip()
-        if answer == "1" or answer == "3" or answer == "4":
+        if answer == "1" or answer == "3" or answer == "4" or answer == "5":
             choice = answer
         elif answer == "2" and can_replay == True:
             choice = answer
@@ -47,7 +49,7 @@ def record_time(settings, seconds, scores):
     """OPTIONAL EXTRA - save the time of a won game if it is a record.
 
     Parameters:
-        settings (tuple): (rows, cols, nb_mines, seed) of the game
+        settings (tuple): (rows, cols, nb_mines, seed, safe_start) of the game
         seconds (int): time of the game, or None if the game was not won
         scores (dict): the best times (it is changed)
 
@@ -60,6 +62,7 @@ def record_time(settings, seconds, scores):
     is_record = update_scores(scores, key, seconds)
     if is_record == True:
         print("New best time for " + key + "!")
+        save_scores(scores, SCORES_FILE)          # keep it for next time
 
 
 def main():
@@ -77,8 +80,8 @@ def main():
     print("Type H during the game to see the commands.")
 
     try:
-        last_settings = None                  # (rows, cols, nb_mines, seed)
-        scores = {}                           # extra: best times (board -> seconds)
+        last_settings = None      # (rows, cols, nb_mines, seed, safe_start)
+        scores = load_scores(SCORES_FILE)     # extra: best times from the file
 
         choice = ""
         while choice != "3":
@@ -87,8 +90,12 @@ def main():
                 can_replay = True
             choice = ask_menu(can_replay)
 
-            if choice == "1":
-                last_settings = choose_level()
+            if choice == "1" or choice == "5":
+                level = choose_level()            # (rows, cols, nb_mines, seed)
+                safe_start = False
+                if choice == "5":
+                    safe_start = True             # extra: safer first move
+                last_settings = (level[0], level[1], level[2], level[3], safe_start)
                 seconds = play_game(last_settings)
                 record_time(last_settings, seconds, scores)
             elif choice == "2":

@@ -100,7 +100,7 @@ are \code{random} and \code{time}.
 \item \textbf{Seed.} The player may type a seed. If he presses Enter, the program chooses a random
   seed and \emph{shows it}, so every game can be replayed. The same seed and the same first move
   always give the same board.
-\item \textbf{Menu.} After a game: new game, replay the last game (same level and seed), or quit.
+\item \textbf{Menu.} New game, replay the last game (same level and seed), quit; extras: best times (4) and a new game with a safe start (5).
 \item \textbf{Input.} Any wrong input (unknown command, \code{Z99}, \code{E}, \code{5E}, \code{E-5},
   a revealed or flagged cell, \dots) prints a clear message and asks again; the turn is not lost.
   Closing the input (Ctrl+Z) or pressing Ctrl+C stops the program with a message, never with an error.
@@ -152,7 +152,7 @@ The code is split into five files. Imports go in one direction only:
 \code{interface.py} & level and seed choice, display, command parsing, help \\
 \code{game\_logic.py} & game state, reveal (flood fill), flags, win and loss, one full game \\
 \code{main.py} & entry point and menu: new game, replay, quit \\
-\code{scores.py} & \emph{extra}: best times in a dictionary \\
+\code{scores.py} & \emph{extra}: best times in a dictionary, saved in \code{scores.txt} \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -222,7 +222,10 @@ main & title, then menu until the player quits & -- & None \\
 find\_hint & a safe hidden cell, next to the open area if possible & state & tuple or None \\
 ask\_number & asks an integer between two limits & question, low, high & int \\
 choose\_custom & size and mines of a custom board & -- & (rows, cols, nb\_mines) \\
-record\_time & keeps the time of a won game if it is a record & settings, seconds, scores & None \\
+record\_time & keeps the time of a won game if it is a record and saves the file & settings, seconds, scores & None \\
+load\_scores & reads \code{scores.txt} (empty dictionary if there is no file) & filename & dict \\
+save\_scores & writes the dictionary in \code{scores.txt} & scores, filename & None \\
+place\_mines\_safe & like place\_mines, but also no mine around the safe cell & rows, cols, nb\_mines, safe\_cell & set of tuples \\
 board\_key & scoreboard key, e.g. \code{"9x9, 10 mines"} & rows, cols, nb\_mines & str \\
 update\_scores & stores a time if it is the best & scores, key, seconds & bool \\
 show\_scores & prints the best times & scores & None \\
@@ -443,8 +446,8 @@ $200\times200$ & 40\,000 & 65.6 ms & 118 ms\\
 
 All tests were run on the real program (\code{python main.py}) with the input typed automatically,
 on Python 3.8 and Python 3.13. Seed 7 on level 1 gives the board of the assignment, with mines on
-G1, H1, A2, D2, B3, G5, C6, G6, C8 and G8. Tests F1--F2 are random (``fuzz'') tests and E1--E3 test the
-optional extras. \textbf{Result: 26 / 26 passed.} Figure~\ref{fig:vscode} shows a real game played by
+G1, H1, A2, D2, B3, G5, C6, G6, C8 and G8. Tests F1--F2 are random (``fuzz'') tests and E1--E5 test the
+optional extras. \textbf{Result: 28 / 28 passed.} Figure~\ref{fig:vscode} shows a real game played by
 hand during the tests (flags, an error message, then a loss with the full board).
 
 \begin{figure}[H]
@@ -485,8 +488,10 @@ T21 & Input closed (Ctrl+Z) at any moment & input ends in a game, a menu, the le
 F1 & Fuzz: random text to parse\_command & 50 000 random strings & no exception & 0 exceptions -- pass\\
 F2 & Fuzz: 1500 random games & random reveals and flags & no mine or flag ever revealed & 0 rule violations -- pass\\
 E1 & Hint command (extra) & HINT before and after R E5; 300 Hard games solved by hints only & message, then a safe cell & ``Hint: D1 is safe.''; 300/300 games won with hints -- pass\\
-E2 & Timer and best times (extra) & menu 4, win, replay and win again, menu 4 & time shown, best time kept in the dictionary & time shown, best time listed -- pass\\
-E3 & Custom board size (extra) & 4, 21, abc, 20, 20, 101, 0, 100 & asked again; 20 x 20 with 100 mines & 3 + 2 refusals, 20 x 20 board, 100 mines -- pass\\
+E2 & Timer and best times saved in a file (extra) & win, quit, restart, menu 4 & time shown, record kept after restart & time shown, scores.txt read back -- pass\\
+E3 & Badly written score file (extra) & file with wrong lines & wrong lines ignored & only the valid line shown -- pass\\
+E4 & Custom board size (extra) & 4, 21, abc, 20, 20, 101, 0, 100 & asked again; 20 x 20 with 100 mines & 3 + 2 refusals, 20 x 20 board, 100 mines -- pass\\
+E5 & Safe start (extra) & menu 5; 1 600 games incl. 5 x 5 with 6 mines & first cell and its 8 neighbours never mines & 0 mines around the first cell; normal game unchanged -- pass\\
 \bottomrule
 \end{longtable}}
 
@@ -521,7 +526,7 @@ E3 & Custom board size (extra) & 4, 21, abc, 20, 20, 101, 0, 100 & asked again; 
 8 & Two non-ASCII characters (\code{\textsuperscript{2}} and a long dash) in comments could be shown
   wrongly with some Windows encodings. & All files now contain only ASCII characters.\\
 9 & The first version used shortcuts that some members had not studied (chained methods, \code{continue},
-  \code{ord}, \code{rjust}, a file for the scores). & The code was rewritten step by step with only notions of the course;
+  \code{ord}, \code{rjust}). & The code was rewritten step by step with only notions of the course;
   all tests were run again.\\
 10 & If the input stream is closed (Ctrl+Z then Enter on Windows) or the player presses Ctrl+C,
   \code{input()} raises an error and the program crashed. & \code{main()} catches \code{EOFError} and
@@ -545,7 +550,7 @@ took part in studying the game, in the tests and in this report.
 \midrule
 Zeynalzada Ayxan & \code{play\_game}, \code{main} (with \code{try}/\code{except}), \code{ask\_menu},
   \code{new\_state}, \code{check\_win}, \code{check\_loss}, \code{cell\_name}; extra: timer and best
-  times (\code{record\_time}, \code{scores.py}) & coordination, overview, main-loop flowchart, test plan\\
+  times saved in a file (\code{record\_time}, \code{scores.py}), safe start (\code{place\_mines\_safe}) & coordination, overview, main-loop flowchart, test plan\\
 Nuruzada Nihat & \code{choose\_level}, \code{place\_mines}, \code{start\_mines}, \code{create\_board},
   \code{is\_number}; extra: custom board size (\code{ask\_number}, \code{choose\_custom}) & design, data structures, seed\\
 Maharramli Anvar & \code{reveal}, \code{toggle\_flag}, \code{display\_board}; extra: \code{find\_hint} &
@@ -561,18 +566,23 @@ Hamzayev Altair & \code{parse\_command}, \code{show\_help} & difficulties and so
 \section{Optional extras}\label{sec:extras}
 
 The extras were added only after all mandatory tests passed, and they do not change the
-mandatory behaviour (tests T1--T20 still pass).
+mandatory behaviour (tests T1--T21 still pass).
 \begin{itemize}
 \item \textbf{\code{HINT} command.} \code{find\_hint} returns a safe hidden cell, preferably next to the
   revealed area. Test E1 solved 300 Hard games using only hints, without hitting a mine.
 \item \textbf{Timer and scoreboard.} \code{play\_game} measures the time with \code{time.time()} and
   returns it when the game is won. The best time of each board is kept in a \emph{dictionary}
-  (key \code{"9x9, 10 mines"}) shown with menu option 4. It is kept while the program runs; we did not save it in a file because file handling was not part of the course.
+  (key \code{"9x9, 10 mines"}), shown with menu option 4.
+\item \textbf{Scoreboard saved in a file.} The dictionary is written to \code{scores.txt}, one line
+  \code{key;seconds} per board, and read again when the program starts. The first time the file does
+  not exist: \code{load\_scores} catches \code{FileNotFoundError} and starts with an empty dictionary.
+  Wrong lines are ignored (tests E2, E3).
 \item \textbf{Custom board size.} Level 4 asks rows and columns from 5 to 20 and at most 25\,\% of
-  mines, and asks again until the values are valid (test E3).
+  mines, and asks again until the values are valid (test E4).
+\item \textbf{Safer first move.} Menu option 5 starts a game where the first cell \emph{and its 8
+  neighbours} have no mine (\code{place\_mines\_safe}), so the first move always opens an area.
+  It is a separate option, so a normal game (and the seed-7 demonstration board) is not changed (test E5).
 \end{itemize}
-We did not add the ``safer first move'' extra, because it would change the boards: the demonstration
-board of the assignment (seed 7) would no longer be reproduced. Colours and a graphical interface
-were not added either.
+Colours and a graphical interface were not added.
 
 \end{document}
