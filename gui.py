@@ -935,6 +935,141 @@ def draw_board(app, surf, col, now, dt):
         surf.blit(glow, frame)
 
 
+def make_face(mood, size, blink):
+    """Paint one smiley picture. It is drawn 4 times bigger and then shrunk,
+    so the edges are smooth.
+
+    Parameters:
+        mood (str): "normal", "press", "win" or "lose"
+        size (int): width and height of the picture in pixels
+        blink (bool): True when the eyes are closed (only for "normal")
+
+    Returns:
+        pygame.Surface: the picture with a transparent background
+    """
+    k = 4
+    big = size * k
+    pic = pygame.Surface((big, big), pygame.SRCALPHA)
+    c = big / 2.0
+    r = big * 0.42
+    ink = (70, 35, 0)
+
+    # soft shadow under the face
+    shadow = pygame.Surface((big, big), pygame.SRCALPHA)
+    pygame.draw.circle(shadow, (0, 0, 0, 70), (int(c), int(c + r * 0.12)), int(r * 1.02))
+    pic.blit(shadow, (0, 0))
+
+    # body: many circles from the dark edge to a bright centre (gradient)
+    steps = 40
+    for i in range(steps):
+        t = i / float(steps - 1)
+        radius = r * (1 - 0.82 * t)
+        cx = c - r * 0.22 * t
+        cy = c - r * 0.30 * t
+        color = lerp_color((236, 140, 0), (255, 236, 90), t)
+        pygame.draw.circle(pic, color, (int(cx), int(cy)), int(radius))
+    pygame.draw.circle(pic, (150, 80, 0), (int(c), int(c)), int(r), k + 1)
+
+    # shiny highlight on the top
+    shine = pygame.Surface((big, big), pygame.SRCALPHA)
+    pygame.draw.ellipse(shine, (255, 255, 255, 90),
+                        (c - r * 0.62, c - r * 0.92, r * 1.1, r * 0.55))
+    pic.blit(shine, (0, 0))
+
+    ex = r * 0.40          # how far the eyes are from the middle
+    ey = c - r * 0.22      # height of the eyes
+    thick = int(r * 0.11)
+
+    # pink cheeks
+    if mood in ("normal", "win"):
+        cheek = pygame.Surface((big, big), pygame.SRCALPHA)
+        for side in (-1, 1):
+            pygame.draw.circle(cheek, (255, 90, 90, 80), (int(c + side * r * 0.62), int(c + r * 0.28)), int(r * 0.16))
+        pic.blit(cheek, (0, 0))
+
+    # eyes
+    if mood == "win":
+        # cool sunglasses
+        for side in (-1, 1):
+            lens = pygame.Rect(0, 0, r * 0.62, r * 0.46)
+            lens.center = (int(c + side * ex), int(ey + r * 0.05))
+            pygame.draw.rect(pic, (20, 20, 28), lens, border_radius=int(r * 0.2))
+            glint = pygame.Rect(0, 0, r * 0.22, r * 0.08)
+            glint.center = (lens.centerx - int(r * 0.1), lens.centery - int(r * 0.1))
+            pygame.draw.ellipse(pic, (120, 170, 255), glint)
+        pygame.draw.line(pic, (20, 20, 28), (int(c - ex * 0.45), int(ey)), (int(c + ex * 0.45), int(ey)), thick)
+        pygame.draw.line(pic, (20, 20, 28), (int(c - ex - r * 0.3), int(ey)), (int(c - r * 0.92), int(ey - r * 0.1)), thick)
+        pygame.draw.line(pic, (20, 20, 28), (int(c + ex + r * 0.3), int(ey)), (int(c + r * 0.92), int(ey - r * 0.1)), thick)
+    elif mood == "lose":
+        # crossed-out eyes
+        s = r * 0.17
+        for side in (-1, 1):
+            x0 = c + side * ex
+            pygame.draw.line(pic, ink, (int(x0 - s), int(ey - s)), (int(x0 + s), int(ey + s)), thick)
+            pygame.draw.line(pic, ink, (int(x0 + s), int(ey - s)), (int(x0 - s), int(ey + s)), thick)
+    elif blink and mood == "normal":
+        for side in (-1, 1):
+            x0 = c + side * ex
+            pygame.draw.arc(pic, ink, (x0 - r * 0.2, ey - r * 0.12, r * 0.4, r * 0.3), math.pi, 2 * math.pi, thick)
+    else:
+        wide = 1.25 if mood == "press" else 1.0
+        for side in (-1, 1):
+            eye = pygame.Rect(0, 0, r * 0.36 * wide, r * 0.5 * wide)
+            eye.center = (int(c + side * ex), int(ey))
+            pygame.draw.ellipse(pic, (255, 255, 255), eye)
+            pygame.draw.ellipse(pic, (120, 70, 0), eye, max(2, k))
+            pupil = pygame.Rect(0, 0, r * 0.2, r * 0.26)
+            pupil.center = (eye.centerx, eye.centery + int(r * 0.04))
+            pygame.draw.ellipse(pic, (25, 15, 5), pupil)
+            spark = int(r * 0.06)
+            pygame.draw.circle(pic, (255, 255, 255), (pupil.centerx - spark, pupil.centery - spark * 2), spark + 1)
+        # small eyebrows
+        for side in (-1, 1):
+            x0 = c + side * ex
+            lift = r * 0.30 if mood == "press" else r * 0.24
+            pygame.draw.arc(pic, ink, (x0 - r * 0.22, ey - r * 0.55 - lift * 0.3, r * 0.44, r * 0.3),
+                            0.4, math.pi - 0.4, max(3, thick // 2))
+
+    # mouth
+    my = c + r * 0.28
+    if mood == "press":
+        mouth = pygame.Rect(0, 0, r * 0.34, r * 0.46)
+        mouth.center = (int(c), int(my + r * 0.12))
+        pygame.draw.ellipse(pic, (90, 20, 10), mouth)
+        pygame.draw.ellipse(pic, ink, mouth, max(2, k))
+        tongue = pygame.Rect(0, 0, r * 0.22, r * 0.16)
+        tongue.center = (mouth.centerx, mouth.bottom - int(r * 0.1))
+        pygame.draw.ellipse(pic, (235, 90, 100), tongue)
+    elif mood == "lose":
+        pygame.draw.arc(pic, ink, (c - r * 0.42, my - r * 0.02, r * 0.84, r * 0.6),
+                        0.35, math.pi - 0.35, thick)
+        # a little blue tear
+        pygame.draw.ellipse(pic, (90, 170, 255), (c + ex + r * 0.12, ey + r * 0.3, r * 0.14, r * 0.24))
+        pygame.draw.ellipse(pic, (40, 110, 200), (c + ex + r * 0.12, ey + r * 0.3, r * 0.14, r * 0.24), max(1, k // 2))
+    else:
+        # happy open smile: dark half-moon with teeth and a tongue
+        smile = pygame.Rect(0, 0, r * 1.05, r * 0.78)
+        smile.center = (int(c), int(my - r * 0.02))
+        mask = pygame.Surface((big, big), pygame.SRCALPHA)
+        pygame.draw.ellipse(mask, (90, 20, 10, 255), smile)
+        pygame.draw.rect(mask, (0, 0, 0, 0), (0, 0, big, smile.centery - int(r * 0.02)))
+        pic.blit(mask, (0, 0))
+        teeth = pygame.Surface((big, big), pygame.SRCALPHA)
+        pygame.draw.rect(teeth, (255, 255, 255, 255), (smile.left, smile.centery - int(r * 0.02), smile.width, int(r * 0.15)))
+        teeth.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+        pic.blit(teeth, (0, 0))
+        tongue = pygame.Surface((big, big), pygame.SRCALPHA)
+        pygame.draw.ellipse(tongue, (235, 90, 100, 255), (c - r * 0.25, smile.bottom - r * 0.34, r * 0.5, r * 0.4))
+        tongue.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+        pic.blit(tongue, (0, 0))
+        # outline of the mouth: the curve below and the straight line on top
+        pygame.draw.arc(pic, ink, smile, math.pi, 2 * math.pi, 1)
+        line_y = smile.centery - int(r * 0.02)
+        pygame.draw.line(pic, ink, (smile.left, line_y), (smile.right, line_y), max(3, k + 2))
+
+    return pygame.transform.smoothscale(pic, (size, size))
+
+
 def draw_face(app, surf, center, radius, mood, col, hover):
     """Draw the round face button in the middle of the top bar.
 
@@ -951,29 +1086,47 @@ def draw_face(app, surf, center, radius, mood, col, hover):
         None
     """
     x, y = center
-    r = radius * (1 + 0.08 * hover)
-    yellow = (255, 214, 10)
-    pygame.draw.circle(surf, lighter(yellow, -0.35), (int(x), int(y + 3)), int(r))
-    pygame.draw.circle(surf, yellow, (int(x), int(y)), int(r))
-    pygame.draw.circle(surf, (60, 40, 0), (int(x), int(y)), int(r), 2)
-    eye = r * 0.32
-    if mood == "win":
-        pygame.draw.rect(surf, (20, 20, 20), (x - r * 0.62, y - r * 0.35, r * 0.55, r * 0.3), border_radius=4)
-        pygame.draw.rect(surf, (20, 20, 20), (x + r * 0.07, y - r * 0.35, r * 0.55, r * 0.3), border_radius=4)
-        pygame.draw.line(surf, (20, 20, 20), (x - r * 0.1, y - r * 0.25), (x + r * 0.1, y - r * 0.25), 3)
-    elif mood == "lose":
-        for ex in (-eye, eye):
-            pygame.draw.line(surf, (40, 20, 0), (x + ex - 5, y - eye - 5), (x + ex + 5, y - eye + 5), 3)
-            pygame.draw.line(surf, (40, 20, 0), (x + ex + 5, y - eye - 5), (x + ex - 5, y - eye + 5), 3)
-    else:
-        for ex in (-eye, eye):
-            pygame.draw.circle(surf, (40, 20, 0), (int(x + ex), int(y - eye * 0.8)), max(2, int(r * 0.11)))
-    if mood == "press":
-        pygame.draw.circle(surf, (60, 30, 0), (int(x), int(y + r * 0.35)), int(r * 0.18), 3)
-    elif mood == "lose":
-        pygame.draw.arc(surf, (60, 30, 0), (x - r * 0.45, y + r * 0.25, r * 0.9, r * 0.6), 0.2, math.pi - 0.2, 3)
-    else:
-        pygame.draw.arc(surf, (60, 30, 0), (x - r * 0.5, y - r * 0.1, r, r * 0.75), math.pi + 0.3, 2 * math.pi - 0.3, 3)
+    size = int(radius * 2 * (1 + 0.1 * hover) / 2) * 2 + 8
+    blink = False
+    if mood == "normal":
+        # the eyes close for a very short moment every 3.5 seconds
+        blink = (time.time() % 3.5) < 0.12
+    cache = app.setdefault("face_cache", {})
+    key = (mood, size, blink)
+    if key not in cache:
+        if len(cache) > 60:
+            cache.clear()
+        cache[key] = make_face(mood, size, blink)
+    surf.blit(cache[key], cache[key].get_rect(center=(int(x), int(y))))
+
+
+def make_icon():
+    """Paint the little picture of the game for the window and the taskbar:
+    a blue rounded tile with the smiley and a small mine in the corner.
+
+    Returns:
+        pygame.Surface: a 64 x 64 picture
+    """
+    size = 256
+    pic = pygame.Surface((size, size), pygame.SRCALPHA)
+    # background: rounded tile with a vertical gradient
+    tile = pygame.Surface((size, size), pygame.SRCALPHA)
+    for y in range(size):
+        color = lerp_color((60, 120, 215), (25, 45, 110), y / float(size - 1))
+        pygame.draw.line(tile, color, (0, y), (size, y))
+    mask = pygame.Surface((size, size), pygame.SRCALPHA)
+    pygame.draw.rect(mask, (255, 255, 255, 255), (0, 0, size, size), border_radius=52)
+    tile.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    pic.blit(tile, (0, 0))
+    pygame.draw.rect(pic, (255, 255, 255, 70), (0, 0, size, size), 4, border_radius=52)
+    # the smiley
+    face = make_face("normal", 180, False)
+    pic.blit(face, face.get_rect(center=(size // 2 - 8, size // 2 - 14)))
+    # small mine in the bottom right corner
+    pygame.draw.circle(pic, (255, 255, 255, 245), (196, 196), 54)
+    pygame.draw.circle(pic, (200, 40, 40), (196, 196), 54, 6)
+    draw_mine(pic, (196, 196), 112, (30, 30, 30))
+    return pygame.transform.smoothscale(pic, (64, 64))
 
 
 def draw_counter(app, surf, rect, value, icon, col):
@@ -1038,7 +1191,7 @@ def draw_top_bar(app, surf, col, now, dt):
     else:
         seconds = int(now - g["start"])
     draw_counter(app, surf, pygame.Rect(WIDTH - 190, 40, 150, 50), min(999, seconds), "clock", col)
-    face_rect = pygame.Rect(WIDTH // 2 - 32, 33, 64, 64)
+    face_rect = pygame.Rect(WIDTH // 2 - 36, 29, 72, 72)
     app["buttons"].append(("restart", face_rect))
     hover = hover_amount(app, "face", 1.0 if face_rect.collidepoint(pygame.mouse.get_pos()) else 0.0, dt)
     mood = "normal"
@@ -1051,7 +1204,7 @@ def draw_top_bar(app, surf, col, now, dt):
     bounce = 0
     if g["end_time"] is not None:
         bounce = math.sin(clamp(now - g["end_time"], 0, 0.6) / 0.6 * math.pi) * 6
-    draw_face(app, surf, (WIDTH // 2, 65 - bounce), 28, mood, col, hover)
+    draw_face(app, surf, (WIDTH // 2, 65 - bounce), 32, mood, col, hover)
 
 
 def draw_button(app, surf, key, rect, text, col, dt, main_color):
@@ -1470,8 +1623,16 @@ def main():
         None
     """
     pygame.init()
+    # on Windows, give the program its own identity so that the taskbar
+    # shows our icon and not the Python icon
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("ufaz.minesweeper.game")
+    except Exception:
+        pass
+    pygame.display.set_icon(make_icon())
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Minesweeper - pygame edition")
+    pygame.display.set_caption("Minesweeper | UFAZ")
     clock = pygame.time.Clock()
     app = new_app(screen)
     running = True
