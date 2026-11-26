@@ -42,6 +42,7 @@ def new_state(rows, cols, nb_mines, seed):
     state["won"] = False
     state["hit_mine"] = None                    # the mine that exploded
     state["safe_start"] = False                 # extra: safer first move
+    state["colors"] = False                     # extra: colours in the terminal
     return state
 
 
@@ -234,11 +235,12 @@ def cell_name(cell):
     return LETTERS[col] + str(row + 1)
 
 
-def play_game(settings):
+def play_game(settings, use_colors):
     """Play one full game, from the first move to the end.
 
     Parameters:
         settings (tuple): (rows, cols, nb_mines, seed, safe_start)
+        use_colors (bool): True to show the board in colour (extra)
 
     Returns:
         int: the time in seconds if the game is won, otherwise None
@@ -251,6 +253,7 @@ def play_game(settings):
 
     state = new_state(rows, cols, nb_mines, seed)
     state["safe_start"] = safe_start
+    state["colors"] = use_colors
     if safe_start == True:
         print("Safe start: there is no mine around your first cell.")
     start_time = time.time()                  # extra: timer

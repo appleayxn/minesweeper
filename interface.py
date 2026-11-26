@@ -13,6 +13,26 @@ from board import LETTERS, LEVELS, LEVEL_NAMES
 
 DIGITS = "0123456789"
 
+# ---------- OPTIONAL EXTRA: colours in the terminal ----------
+# These special texts ("ANSI codes") tell the terminal to change the colour.
+# They work in the VS Code terminal and in Windows Terminal.
+RESET = "\033[0m"            # go back to the normal colour
+SYMBOL_COLORS = {
+    "1": "\033[94m",         # blue
+    "2": "\033[92m",         # green
+    "3": "\033[91m",         # red
+    "4": "\033[95m",         # purple
+    "5": "\033[33m",         # dark yellow
+    "6": "\033[96m",         # cyan
+    "7": "\033[97m",         # white
+    "8": "\033[90m",         # grey
+    "F": "\033[93m",         # yellow flag
+    "*": "\033[91m",         # red mine
+    "X": "\033[41m\033[97m", # white X on a red background
+    "!": "\033[95m",         # purple wrong flag
+    "#": "\033[90m",         # grey hidden cell
+}
+
 
 def is_number(text):
     """Check that a text contains only the digits 0 to 9.
@@ -171,6 +191,21 @@ def cell_symbol(cell, state, show_mines):
     return state["board"][r][c]
 
 
+def color_text(symbol):
+    """OPTIONAL EXTRA - put a symbol in colour for the terminal.
+
+    Parameters:
+        symbol (str): one character of the board, e.g. '3' or 'F'
+
+    Returns:
+        str: the symbol with its colour code before and RESET after,
+             or the symbol alone if it has no colour (e.g. '.')
+    """
+    if symbol in SYMBOL_COLORS:
+        return SYMBOL_COLORS[symbol] + symbol + RESET
+    return symbol
+
+
 def display_board(state, show_mines):
     """Print the board with the letters, the row numbers and the mines left.
 
@@ -200,7 +235,10 @@ def display_board(state, show_mines):
         else:
             line = str(row_number) + " "
         for c in range(cols):
-            line = line + cell_symbol((r, c), state, show_mines) + " "
+            symbol = cell_symbol((r, c), state, show_mines)
+            if state["colors"] == True:          # extra: colours
+                symbol = color_text(symbol)
+            line = line + symbol + " "
         print(line)
 
     mines_left = state["nb_mines"] - len(state["flags"])

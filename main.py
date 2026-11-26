@@ -14,15 +14,17 @@ from scores import SCORES_FILE, board_key, load_scores, save_scores
 from scores import update_scores, show_scores
 
 
-def ask_menu(can_replay):
+def ask_menu(can_replay, use_colors):
     """Show the menu and return the choice of the player.
 
     Parameters:
         can_replay (bool): True if a game was already played
+        use_colors (bool): True if the colours are on (extra)
 
     Returns:
         str: "1" new game, "2" replay the last game, "3" quit,
-             "4" best times (extra), "5" new game with a safe start (extra)
+             "4" best times (extra), "5" new game with a safe start (extra),
+             "6" colours on / off (extra)
     """
     print()
     print("1 - New game")
@@ -31,12 +33,16 @@ def ask_menu(can_replay):
     print("3 - Quit")
     print("4 - Best times")
     print("5 - New game with a safe start (no mine around the first cell)")
+    if use_colors == True:
+        print("6 - Colours: ON (type 6 to turn them off)")
+    else:
+        print("6 - Colours: OFF (type 6 to turn them on)")
 
     choice = ""
     while choice == "":
         answer = input("Your choice: ")
         answer = answer.strip()
-        if answer == "1" or answer == "3" or answer == "4" or answer == "5":
+        if answer == "1" or answer == "3" or answer == "4" or answer == "5" or answer == "6":
             choice = answer
         elif answer == "2" and can_replay == True:
             choice = answer
@@ -82,13 +88,14 @@ def main():
     try:
         last_settings = None      # (rows, cols, nb_mines, seed, safe_start)
         scores = load_scores(SCORES_FILE)     # extra: best times from the file
+        use_colors = True                     # extra: colours in the terminal
 
         choice = ""
         while choice != "3":
             can_replay = False
             if last_settings != None:
                 can_replay = True
-            choice = ask_menu(can_replay)
+            choice = ask_menu(can_replay, use_colors)
 
             if choice == "1" or choice == "5":
                 level = choose_level()            # (rows, cols, nb_mines, seed)
@@ -96,14 +103,20 @@ def main():
                 if choice == "5":
                     safe_start = True             # extra: safer first move
                 last_settings = (level[0], level[1], level[2], level[3], safe_start)
-                seconds = play_game(last_settings)
+                seconds = play_game(last_settings, use_colors)
                 record_time(last_settings, seconds, scores)
             elif choice == "2":
                 # same settings and same seed -> same board
-                seconds = play_game(last_settings)
+                seconds = play_game(last_settings, use_colors)
                 record_time(last_settings, seconds, scores)
             elif choice == "4":
                 show_scores(scores)
+            elif choice == "6":
+                # extra: switch the colours on or off
+                if use_colors == True:
+                    use_colors = False
+                else:
+                    use_colors = True
         print("Goodbye!")
     except EOFError:
         # the input was closed: there is nothing more to read

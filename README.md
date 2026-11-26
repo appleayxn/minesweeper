@@ -12,6 +12,17 @@ python main.py
 
 Python 3.7 or later. No library to install (only `random` and `time` from the standard library are allowed).
 
+### Graphical version (optional extra, approved by the teacher)
+
+```
+pip install pygame
+python gui.py
+```
+
+Same rules (it calls the functions of the text version); 4 colour themes (Classic, Dark, Green, Ocean) and animations.
+Left click: reveal, right click: flag, H: hint, D: debug, T: theme, R: new game, Esc: menu.
+`gui.py` was written with the help of an AI assistant.
+
 ## Commands
 
 | Command | Effect |
@@ -30,6 +41,8 @@ Commands are not case-sensitive. Symbols: `#` hidden, `F` flag, `.` empty, `1`-`
 - `HINT` command: shows a safe hidden cell next to the open area.
 - Timer and scoreboard of best times (dictionary), saved in `scores.txt`; menu option 4.
 - Safe start: menu option 5, no mine on the first cell and its 8 neighbours.
+- Colours in the terminal (on by default, menu option 6 to switch them off; best in VS Code or Windows Terminal).
+- Graphical interface with pygame: `gui.py`.
 - Custom board size (level 4): 5 to 20 rows and columns, at most 25 % of mines.
 
 ## Demo
@@ -45,4 +58,5 @@ Level 1, seed 7, first move `R E5` gives exactly the example board of the assign
 | `game_logic.py` | game state, reveal (flood fill), flags, win / loss, one game |
 | `interface.py` | level and seed, display, command parsing, help |
 | `scores.py` | extra: best times in a dictionary, saved in `scores.txt` |
+| `gui.py` | extra: graphical version with pygame |
 | `report/main.tex` | report template (Overleaf) |

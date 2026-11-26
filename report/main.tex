@@ -26,8 +26,8 @@
 
 % Photo: shows the picture if the file exists, otherwise an empty frame
 \newcommand{\photo}[2]{%
-  \IfFileExists{#1}{\includegraphics[width=\linewidth,height=4.2cm,keepaspectratio]{#1}}%
-  {\fbox{\parbox[c][3.8cm][c]{0.92\linewidth}{\centering\small\color{gray}
+  \IfFileExists{#1}{\includegraphics[width=\linewidth,height=3.4cm,keepaspectratio]{#1}}%
+  {\fbox{\parbox[c][3.2cm][c]{0.92\linewidth}{\centering\small\color{gray}
    Photo: upload \texttt{#1} to Overleaf\\[2pt]#2}}}}
 
 \tikzset{
@@ -100,7 +100,7 @@ are \code{random} and \code{time}.
 \item \textbf{Seed.} The player may type a seed. If he presses Enter, the program chooses a random
   seed and \emph{shows it}, so every game can be replayed. The same seed and the same first move
   always give the same board.
-\item \textbf{Menu.} New game, replay the last game (same level and seed), quit; extras: best times (4) and a new game with a safe start (5).
+\item \textbf{Menu.} New game, replay the last game (same level and seed), quit; extras: best times (4), a new game with a safe start (5), colours on/off (6).
 \item \textbf{Input.} Any wrong input (unknown command, \code{Z99}, \code{E}, \code{5E}, \code{E-5},
   a revealed or flagged cell, \dots) prints a clear message and asks again; the turn is not lost.
   Closing the input (Ctrl+Z) or pressing Ctrl+C stops the program with a message, never with an error.
@@ -118,9 +118,16 @@ files and finally added optional extras.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\linewidth]{photos/infinite_minesweeper.png}
-\caption{A variant found while studying the game: infinite Minesweeper on 1000mines.com. It was not implemented.}
+\begin{minipage}[b]{0.56\linewidth}\centering
+\includegraphics[width=\linewidth]{photos/infinite_minesweeper.png}
+\captionof{figure}{A variant found while studying the game: infinite Minesweeper (1000mines.com), not implemented.}
 \label{fig:infinite}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.38\linewidth}\centering
+\includegraphics[width=0.75\linewidth]{photos/our_game_loss.png}
+\captionof{figure}{Our game in VS Code: \code{F A1} on a revealed cell is refused, then \code{R A7} hits a mine.}
+\label{fig:vscode}
+\end{minipage}
 \end{figure}
 
 \begin{figure}[H]
@@ -139,9 +146,10 @@ files and finally added optional extras.
 \section{Design}\label{sec:design}
 
 \subsection{Files}
-The code is split into five files. Imports go in one direction only:
+The text version is split into five files. Imports go in one direction only:
 \code{main} $\rightarrow$ \code{game\_logic} $\rightarrow$ \code{interface} $\rightarrow$ \code{board}
-(\code{scores} is an optional extra used by \code{main}).
+(\code{scores} is an optional extra used by \code{main}). The optional graphical version \code{gui.py}
+only imports the functions of these files.
 
 \begin{center}
 \begin{tabularx}{\linewidth}{l X}
@@ -153,6 +161,7 @@ The code is split into five files. Imports go in one direction only:
 \code{game\_logic.py} & game state, reveal (flood fill), flags, win and loss, one full game \\
 \code{main.py} & entry point and menu: new game, replay, quit \\
 \code{scores.py} & \emph{extra}: best times in a dictionary, saved in \code{scores.txt} \\
+\code{gui.py} & \emph{extra}: graphical version with pygame (Section~\ref{sec:extras}) \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -203,6 +212,7 @@ display\_board & prints letters, numbers, grid, mines left & state, show\_mines 
 parse\_cell & \code{"C4"} $\rightarrow$ \code{(3, 2)} with checks & text, rows, cols & (cell, "") or (None, message) \\
 parse\_command & checks one typed line, never crashes & text, rows, cols & (command, cell) or (None, message) \\
 show\_help & prints commands and symbols & -- & None \\
+color\_text & extra: puts a symbol in colour (ANSI code) & symbol & str \\
 \midrule
 \multicolumn{4}{l}{\textit{game\_logic.py}}\\
 new\_state & creates the state dictionary & rows, cols, nb\_mines, seed & dict \\
@@ -226,6 +236,7 @@ record\_time & keeps the time of a won game if it is a record and saves the file
 load\_scores & reads \code{scores.txt} (empty dictionary if there is no file) & filename & dict \\
 save\_scores & writes the dictionary in \code{scores.txt} & scores, filename & None \\
 place\_mines\_safe & like place\_mines, but also no mine around the safe cell & rows, cols, nb\_mines, safe\_cell & set of tuples \\
+\multicolumn{4}{l}{\textit{gui.py (48 functions): drawing, animations and events only, see Section~\ref{sec:extras}}}\\
 board\_key & scoreboard key, e.g. \code{"9x9, 10 mines"} & rows, cols, nb\_mines & str \\
 update\_scores & stores a time if it is the best & scores, key, seconds & bool \\
 show\_scores & prints the best times & scores & None \\
@@ -246,7 +257,7 @@ of a \code{0} are pushed with \code{append}.
 \begin{minipage}[t]{0.5\linewidth}\centering
 \begin{tikzpicture}[node distance=4mm and 6mm,scale=0.62,transform shape]
 \node[term] (start) {Start};
-\node[box, below=of start] (menu) {menu: 1 new / 2 replay\\ 3 quit / 4 best times};
+\node[box, below=of start] (menu) {menu: 1 new / 2 replay\\ 3 quit / 4--6 extras};
 \node[box, below=of menu] (level) {choose\_level()\\ level and seed};
 \node[box, below=of level] (state) {new\_state(), start timer};
 \node[box, below=of state] (show) {display\_board()};
@@ -446,16 +457,11 @@ $200\times200$ & 40\,000 & 65.6 ms & 118 ms\\
 
 All tests were run on the real program (\code{python main.py}) with the input typed automatically,
 on Python 3.8 and Python 3.13. Seed 7 on level 1 gives the board of the assignment, with mines on
-G1, H1, A2, D2, B3, G5, C6, G6, C8 and G8. Tests F1--F2 are random (``fuzz'') tests and E1--E5 test the
-optional extras. \textbf{Result: 28 / 28 passed.} Figure~\ref{fig:vscode} shows a real game played by
+G1, H1, A2, D2, B3, G5, C6, G6, C8 and G8. Tests F1--F2 are random (``fuzz'') tests and E1--E6 test the
+optional extras. \textbf{Result: 29 / 29 passed.} Figure~\ref{fig:vscode} shows a real game played by
 hand during the tests (flags, an error message, then a loss with the full board).
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.52\linewidth]{photos/our_game_loss.png}
-\caption{Our game in the VS Code terminal: \code{F A1} on a revealed cell is refused, then \code{R A7} hits a mine.}
-\label{fig:vscode}
-\end{figure}
+
 
 {\footnotesize
 \renewcommand{\arraystretch}{1.1}
@@ -465,7 +471,7 @@ hand during the tests (flags, an error message, then a loss with the full board)
 \midrule
 \endhead
 T1 & First move is always safe & R <any cell>, 1200 games + 20 real runs & never a mine & 0 mines hit in 1220 games -- pass\\
-T2 & Flood fill opens the empty area & seed 7, R E5 & same board as the example of the assignment & identical to the example, 40 cells opened -- pass\\
+T2 & Flood fill opens the empty area & seed 7, R E5 & same board as the example of the assignment & identical to the example, 45 cells opened -- pass\\
 T3 & Flag on a revealed cell & R E5 then F E5 & error message, turn kept & ``You cannot flag a revealed cell.'' -- pass\\
 T4 & Cell outside the board & R Z99, R J1, R A10, R A0 & error message, ask again & ``Cell outside the board.'' 4 times -- pass\\
 T5 & Badly written cell & R E, R 5E, R E-5, R E5.0, R E$^2$ & error message, no crash & ``Invalid cell...'' five times -- pass\\
@@ -492,6 +498,7 @@ E2 & Timer and best times saved in a file (extra) & win, quit, restart, menu 4 &
 E3 & Badly written score file (extra) & file with wrong lines & wrong lines ignored & only the valid line shown -- pass\\
 E4 & Custom board size (extra) & 4, 21, abc, 20, 20, 101, 0, 100 & asked again; 20 x 20 with 100 mines & 3 + 2 refusals, 20 x 20 board, 100 mines -- pass\\
 E5 & Safe start (extra) & menu 5; 1 600 games incl. 5 x 5 with 6 mines & first cell and its 8 neighbours never mines & 0 mines around the first cell; normal game unchanged -- pass\\
+E6 & Colours in the terminal (extra) & default, then menu 6 & coloured numbers, then plain text & 1 in blue, \# in grey; no colour codes after 6 -- pass\\
 \bottomrule
 \end{longtable}}
 
@@ -521,14 +528,10 @@ E5 & Safe start (extra) & menu 5; 1 600 games incl. 5 x 5 with 6 mines & first c
 6 & The first move must be safe, but the mines must exist to compute the numbers. &
   The mines are placed inside \code{reveal}, at the first call, excluding the chosen cell
   (test T1: 1\,220 games, no mine hit).\\
-7 & A cell can be pushed several times on the stack (Section 4). &
-  It is skipped when it is popped if it is already revealed.\\
-8 & Two non-ASCII characters (\code{\textsuperscript{2}} and a long dash) in comments could be shown
-  wrongly with some Windows encodings. & All files now contain only ASCII characters.\\
-9 & The first version used shortcuts that some members had not studied (chained methods, \code{continue},
+7 & The first version used shortcuts that some members had not studied (chained methods, \code{continue},
   \code{ord}, \code{rjust}). & The code was rewritten step by step with only notions of the course;
   all tests were run again.\\
-10 & If the input stream is closed (Ctrl+Z then Enter on Windows) or the player presses Ctrl+C,
+8 & If the input stream is closed (Ctrl+Z then Enter on Windows) or the player presses Ctrl+C,
   \code{input()} raises an error and the program crashed. & \code{main()} catches \code{EOFError} and
   \code{KeyboardInterrupt} with \code{try}/\code{except} and stops with a message (test T21).\\
 \bottomrule
@@ -536,11 +539,13 @@ E5 & Safe start (extra) & menu 5; 1 600 games incl. 5 x 5 with 6 mines & first c
 \end{center}
 
 % ------------------------------------------------------------------ 8
-\needspace{12\baselineskip}
+
 \section{Contributions}
 
-Each member is responsible for at least two functions and can explain and modify them. Everyone
-took part in studying the game, in the tests and in this report.
+Each member is responsible for at least two functions and can explain and modify them; the share
+is the part of the lines of code of the text version. Everyone took part in studying the game, in the
+tests and in this report. The optional graphical version (\code{gui.py}) was written with the help of an
+AI assistant, as agreed with the teacher; Ayxan is responsible for it.
 
 \begin{center}
 \small
@@ -548,16 +553,17 @@ took part in studying the game, in the tests and in this report.
 \toprule
 \textbf{Member} & \textbf{Functions} & \textbf{Report}\\
 \midrule
-Zeynalzada Ayxan & \code{play\_game}, \code{main} (with \code{try}/\code{except}), \code{ask\_menu},
-  \code{new\_state}, \code{check\_win}, \code{check\_loss}, \code{cell\_name}; extra: timer and best
-  times saved in a file (\code{record\_time}, \code{scores.py}), safe start (\code{place\_mines\_safe}) & coordination, overview, main-loop flowchart, test plan\\
-Nuruzada Nihat & \code{choose\_level}, \code{place\_mines}, \code{start\_mines}, \code{create\_board},
-  \code{is\_number}; extra: custom board size (\code{ask\_number}, \code{choose\_custom}) & design, data structures, seed\\
-Maharramli Anvar & \code{reveal}, \code{toggle\_flag}, \code{display\_board}; extra: \code{find\_hint} &
-  reveal flowchart, $5\times5$ trace\\
-Qurbanli Elton & \code{neighbours}, \code{count\_adjacent}, \code{compute\_numbers}, \code{parse\_cell},
-  \code{cell\_symbol} & complexity analysis\\
-Hamzayev Altair & \code{parse\_command}, \code{show\_help} & difficulties and solutions\\
+Zeynalzada Ayxan (35.7\,\%) & \code{reveal}, \code{play\_game}, \code{main}, \code{load\_scores},
+  \code{save\_scores}, \code{find\_hint}, \code{check\_win}, \code{check\_loss}, \code{cell\_name};
+  and \code{gui.py} & coordination; reveal flowchart, flood-fill trace, extras and GUI\\
+Nuruzada Nihat (23.2\,\%) & \code{choose\_level}, \code{parse\_command}, \code{neighbours},
+  \code{place\_mines}, \code{place\_mines\_safe} & overview, main-loop flowchart, test plan\\
+Qurbanli Elton (16.9\,\%) & \code{display\_board}, \code{parse\_cell}, \code{cell\_symbol},
+  \code{color\_text} and the colour codes, \code{start\_mines} & design, data structures, difficulties\\
+Maharramli Anvar (14.0\,\%) & \code{ask\_menu}, \code{toggle\_flag}, \code{ask\_number}, \code{choose\_custom},
+  \code{compute\_numbers}, \code{count\_adjacent}, \code{update\_scores}, \code{record\_time} & complexity analysis\\
+Hamzayev Altair (10.1\,\%) & \code{new\_state}, \code{show\_help}, \code{create\_board}, \code{is\_number},
+  \code{show\_scores}, \code{board\_key}, the constants & function table, contributions\\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -569,20 +575,30 @@ The extras were added only after all mandatory tests passed, and they do not cha
 mandatory behaviour (tests T1--T21 still pass).
 \begin{itemize}
 \item \textbf{\code{HINT} command.} \code{find\_hint} returns a safe hidden cell, preferably next to the
-  revealed area. Test E1 solved 300 Hard games using only hints, without hitting a mine.
-\item \textbf{Timer and scoreboard.} \code{play\_game} measures the time with \code{time.time()} and
-  returns it when the game is won. The best time of each board is kept in a \emph{dictionary}
-  (key \code{"9x9, 10 mines"}), shown with menu option 4.
-\item \textbf{Scoreboard saved in a file.} The dictionary is written to \code{scores.txt}, one line
-  \code{key;seconds} per board, and read again when the program starts. The first time the file does
-  not exist: \code{load\_scores} catches \code{FileNotFoundError} and starts with an empty dictionary.
-  Wrong lines are ignored (tests E2, E3).
-\item \textbf{Custom board size.} Level 4 asks rows and columns from 5 to 20 and at most 25\,\% of
-  mines, and asks again until the values are valid (test E4).
-\item \textbf{Safer first move.} Menu option 5 starts a game where the first cell \emph{and its 8
-  neighbours} have no mine (\code{place\_mines\_safe}), so the first move always opens an area.
-  It is a separate option, so a normal game (and the seed-7 demonstration board) is not changed (test E5).
+  revealed area (test E1: 300 Hard games solved with hints only).
+\item \textbf{Timer and scoreboard.} \code{play\_game} measures the time with \code{time.time()}; the best
+  time of each board is kept in a \emph{dictionary} (key \code{"9x9, 10 mines"}), menu option 4.
+\item \textbf{Scoreboard saved in a file.} The dictionary is written to \code{scores.txt}
+  (\code{key;seconds}, one line per board) and read again at start; \code{FileNotFoundError} is caught
+  the first time, wrong lines are ignored (tests E2, E3).
+\item \textbf{Custom board size.} Level 4: 5 to 20 rows and columns, at most 25\,\% of mines (test E4).
+\item \textbf{Safer first move.} Menu option 5: no mine on the first cell and its 8 neighbours
+  (\code{place\_mines\_safe}); a normal game is not changed (test E5).
+\item \textbf{Colours in the terminal.} Numbers, flags and mines are coloured with ANSI codes
+  (\code{color\_text}); on by default, menu option 6 switches them off (test E6).
+\item \textbf{Graphical interface} (\code{gui.py}, pygame, approved by the teacher, written with the help of
+  an AI assistant). Only the interface is new: every rule comes from the text version (\code{reveal},
+  \code{toggle\_flag}, \code{check\_win}, \dots). Four themes (Classic, Dark, Green, Ocean) and animations:
+  the opened area appears as a wave, flags pop, mines appear one by one after an explosion, confetti for
+  a win. Run: \code{pip install pygame}, then \code{python gui.py}.
 \end{itemize}
-Colours and a graphical interface were not added.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.27\linewidth]{photos/gui_menu.png}\hfill
+\includegraphics[width=0.27\linewidth]{photos/gui_game.png}\hfill
+\includegraphics[width=0.27\linewidth]{photos/gui_lost.png}
+\caption{The graphical version: menu (Ocean theme), a game (Classic) and a lost game (Dark).}
+\end{figure}
 
 \end{document}
