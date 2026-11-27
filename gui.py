@@ -16,7 +16,7 @@ Run with:   pip install pygame      (once)
 
 Controls:   left click = reveal, right click = flag,
             H = hint, D = debug (show the mines), T = theme,
-            R = new game, Esc = back to the menu.
+            R = new game, F or F11 = full screen, Esc = back to the menu.
 """
 
 import math
@@ -1327,7 +1327,7 @@ def draw_game(app, surf, now, dt):
     surf.fill(col["bg"])
     draw_top_bar(app, surf, col, now, dt)
     draw_board(app, surf, col, now, dt)
-    help_text = "Left click: open   Right click: flag   H: hint   D: debug   T: theme   Esc: menu"
+    help_text = "Click: open   Right click: flag   H: hint   D: debug   T: theme   F: full screen   Esc: menu"
     draw_text(app, surf, help_text, 15, lighter(col["text"], -0.1), (WIDTH // 2, HEIGHT - 18), False)
     draw_particles(app, surf)
     draw_overlay(app, surf, col, now, dt)
@@ -1473,7 +1473,7 @@ def draw_menu(app, surf, now, dt):
     pygame.draw.rect(glow, (46, 160, 67, int(40 + 50 * pulse)), glow.get_rect(), border_radius=40)
     surf.blit(glow, (start.left - 20, start.top - 20))
     draw_button(app, surf, "start", start, "START", col, dt, (46, 160, 67))
-    draw_text(app, surf, "Enter: start   1-4: level   T: theme   Esc: quit", 15,
+    draw_text(app, surf, "Enter: start   1-4: level   T: theme   F: full screen   Esc: quit", 15,
               lighter(col["text"], -0.15), (WIDTH // 2, HEIGHT - 25), False)
 
 
@@ -1528,6 +1528,32 @@ def button_under(app, pos):
     return found
 
 
+def toggle_fullscreen(app, now):
+    """Switch between the window and the full screen. In full screen the
+    picture keeps its proportions (black bars on the sides if needed) and the
+    mouse still points at the right cells, because of the SCALED flag.
+
+    Parameters:
+        app (dict): the application state
+        now (float): current time
+
+    Returns:
+        None
+    """
+    app["fullscreen"] = not app.get("fullscreen", False)
+    try:
+        if app["fullscreen"]:
+            app["screen"] = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+            show_toast(app, "Full screen: press F or F11 to go back", now)
+        else:
+            app["screen"] = pygame.display.set_mode((WIDTH, HEIGHT))
+    except pygame.error:
+        # some computers refuse: go back to the normal window
+        app["fullscreen"] = False
+        app["screen"] = pygame.display.set_mode((WIDTH, HEIGHT))
+        show_toast(app, "Full screen is not available here", now)
+
+
 def handle_event(app, event, now):
     """React to one event (mouse or keyboard).
 
@@ -1541,6 +1567,15 @@ def handle_event(app, event, now):
     """
     if event.type == pygame.QUIT:
         return False
+    if event.type == pygame.KEYDOWN:
+        alt_enter = event.key == pygame.K_RETURN and (getattr(event, "mod", 0) & pygame.KMOD_ALT)
+        if event.key in (pygame.K_F11, pygame.K_f) or alt_enter:
+            toggle_fullscreen(app, now)
+            return True
+        if event.key == pygame.K_ESCAPE and app.get("fullscreen", False) and app["mode"] == "menu":
+            # Esc in the menu closes the program, so leave the full screen first
+            toggle_fullscreen(app, now)
+            return True
     if app["mode"] == "menu":
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             key = button_under(app, event.pos)

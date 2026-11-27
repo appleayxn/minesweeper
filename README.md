@@ -20,7 +20,7 @@ python gui.py
 ```
 
 Same rules (it calls the functions of the text version); 4 colour themes (Classic, Dark, Green, Ocean) and animations.
-Left click: reveal, right click: flag, H: hint, D: debug, T: theme, R: new game, Esc: menu.
+Left click: reveal, right click: flag, H: hint, D: debug, T: theme, R: new game, F or F11: full screen, Esc: menu.
 `gui.py` was written with the help of an AI assistant.
 
 ## Commands
